@@ -1,0 +1,10 @@
+# Downloaded datasets — re-fetch with scripts/fetch_data.sh, never committed.
+data/*
+!data/README.md
+
+# Local tooling state
+.remember/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.venv/

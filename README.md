@@ -5,6 +5,8 @@
 
 Thesis Course research project · Rimjhim Dey
 
+**Paper:** [report/report.pdf](report/report.pdf) · [Word version](report/report.docx)
+
 ---
 
 ## The question

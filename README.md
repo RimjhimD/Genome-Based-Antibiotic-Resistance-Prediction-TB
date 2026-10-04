@@ -3,7 +3,7 @@
 **Geographic Transportability of Genome-Based Antibiotic Resistance Prediction in
 *Mycobacterium tuberculosis*: A South Asian Evaluation**
 
-Thesis Course research project · Rimjhim Dey
+Internship research project (CSE 4001) · Rimjhim Dey
 
 **Paper:** [report/report.pdf](report/report.pdf) · [Word version](report/report.docx)
 

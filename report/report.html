@@ -81,6 +81,57 @@ case means a patient may get a drug that will not work, so South Asia needs resi
 built from its own lineages.
 </div>
 
+<h2>Work Summary: What We Did and What We Achieved</h2>
+<h3>What we did</h3>
+<ol>
+<li><b>Chose the problem.</b> Reviewed the literature and identified the gap: genome-based TB
+resistance models are built mostly on lineages 2 and 4 and have not been tested on the lineage 1
+and 3 strains that dominate South Asia.</li>
+<li><b>Collected public data.</b> The CRyPTIC collection of 12,287 TB isolates with laboratory
+resistance results, their mutation calls, country and lineage, pairwise genetic distances, and the
+WHO 2023 resistance-mutation catalogue.</li>
+<li><b>Cleaned and joined the data.</b> Removed unreliable laboratory readings, assigned each isolate
+a country, and established that 2,162 South Asian isolates (India, Pakistan, Nepal) carry
+laboratory results.</li>
+<li><b>Built the features.</b> A yes/no matrix of 1,021
+mutations in 23 known resistance genes.</li>
+<li><b>Prevented leakage.</b> Grouped near-identical isolates into 7,875
+transmission clusters and kept every cluster on one side of each train/test split.</li>
+<li><b>Trained models.</b> Logistic regression, random forest, gradient boosting (XGBoost) and a
+shallow neural network, separately for each of eight antibiotics.</li>
+<li><b>Evaluated them three ways</b> (random split, South Asia holdout, leave-one-country-out) and
+compared them with the WHO catalogue on exactly the same isolates.</li>
+<li><b>Analysed the errors.</b> Sensitivity by lineage with 95% confidence intervals, confusion
+matrices, the mutations carried by missed resistant isolates, and a test of adding lineage as a
+feature.</li>
+<li><b>Verified the work.</b> Re-ran the whole pipeline from a fresh copy of the repository (every
+number reproduced) and passed 31 automated checks on the results, including a check that no
+South Asian isolate leaked into training.</li>
+</ol>
+<h3>What we achieved</h3>
+<ul>
+<li><b>Answered the research question.</b> On average the models do transfer to South Asian
+isolates: AUC fell by at most 0.018 when South Asian data were withheld.</li>
+<li><b>Found where they fail.</b> Resistant lineage 1 and lineage 3 isolates are detected 11 to 41
+percentage points less often than lineage 2 isolates; the gap is statistically clear for
+isoniazid, rifampicin, levofloxacin and moxifloxacin. For levofloxacin, 46.4% of resistant
+lineage 1 isolates were missed, against 6.2% for
+lineage 2.</li>
+<li><b>Located the cause.</b> The WHO catalogue misses the same cases, so the weakness lies in
+what is known about resistance in these lineages, not only in where the training data came
+from.</li>
+<li><b>Identified region-specific misses.</b> Ethambutol resistance in a South Asian lineage 2 group
+carrying <i>embC</i> A387V and <i>embB</i> Q445R, mutations almost absent among resistant training
+isolates.</li>
+<li><b>Matched or beat the clinical standard</b> on sensitivity for ethambutol, ethionamide,
+kanamycin and amikacin, and stayed within 1.5 points of the WHO catalogue for isoniazid,
+rifampicin and the fluoroquinolones.</li>
+<li><b>Delivered a reproducible pipeline</b> that runs on an ordinary laptop CPU in under 15
+minutes, with all code, results and figures public (see Resources).</li>
+</ul>
+<p>What the study did not cover — Bangladeshi isolates, genes outside the 23 candidates, and
+larger lineage 1 samples — is listed under Limitations (Section 7).</p>
+
 <h2>1. Introduction</h2>
 <p>Tuberculosis remains among the leading infectious causes of death, and drug resistance is the
 main obstacle to treating it. Culture-based drug-susceptibility testing takes weeks. Whole-genome

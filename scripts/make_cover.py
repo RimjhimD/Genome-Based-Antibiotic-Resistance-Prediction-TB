@@ -169,12 +169,12 @@ def build(name, sid, semester, session, course_name, course_code,
 COVER = dict(
     semester="8th",
     session="Spring 2026",
-    course_name="Thesis Course",
-    course_code="",
+    course_name="Internship",
+    course_code="CSE 4001",
     report_no="Geographic Transportability of Genome-Based Antibiotic Resistance Prediction "
               "in <text:span text:style-name=\"TItalic\">Mycobacterium tuberculosis</text:span>: "
               "A South Asian Evaluation",
-    date_report="04-10-2026",
+    date_report="14-09-2026",
     date_submit="04-10-2026",
     teacher="Imtiaz Riad",
     designation="Co-Founder",

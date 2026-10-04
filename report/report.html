@@ -21,12 +21,31 @@
   .fig figcaption { margin-top: 4px; }
   code { font-size: 10pt; }
   .small { font-size: 10pt; color: #444; }
+  h2, h3, figcaption { page-break-after: avoid; break-after: avoid; }
+  tr { page-break-inside: avoid; break-inside: avoid; }
+  .newpage { page-break-before: always; break-before: page; }
+  .cover { text-align: center; page-break-after: always; break-after: page; padding-top: 70px; }
+  .cover h1 { font-size: 24pt; margin: 18px 0 10px; }
+  .cover .kind { font-size: 13pt; letter-spacing: 2px; text-transform: uppercase; color: #444; }
+  .cover .sub { font-size: 12pt; color: #444; margin-bottom: 90px; }
+  .cover .label { font-size: 11pt; text-transform: uppercase; letter-spacing: 1px; color: #666;
+                  margin: 34px 0 4px; }
+  .cover .who { font-size: 13pt; margin: 0; }
+  .cover .date { margin-top: 70px; font-size: 12pt; }
 </style></head><body>
 
+<div class="cover">
+<p class="kind">Research Report</p>
 <h1>Geographic Transportability of Genome-Based Antibiotic Resistance Prediction in
 <i>Mycobacterium tuberculosis</i>: A South Asian Evaluation</h1>
-<div class="meta">Rimjhim Dey · Thesis Course, 8th Semester · October 2026<br>
-Code and data pipeline: <a href="https://github.com/RimjhimD/Genome-Based-Antibiotic-Resistance-Prediction-TB">github.com/RimjhimD/Genome-Based-Antibiotic-Resistance-Prediction-TB</a></div>
+<p class="sub">Research Track</p>
+<p class="label">Submitted to</p>
+<p class="who"><b>Imtiaz Riad</b><br>Co-Founder<br>Authentic Four Technology</p>
+<p class="label">Submitted by</p>
+<p class="who"><b>Rimjhim Dey</b></p>
+<p class="date">4 October 2026</p>
+</div>
+<!--PAGEBREAK-->
 
 <div class="abstract"><b>Abstract.</b>
 Machine learning models predict antibiotic resistance in <i>M. tuberculosis</i> from the genome in
@@ -1304,16 +1323,6 @@ for determinants outside the candidate genes in missed lineage 1 and 3 isolates;
 reweighting (as in FW-RF); threshold recalibration per region; and, if a paired Bangladeshi genome
 and phenotype set becomes available through collaboration, direct validation.</p>
 
-<h2>Reproducibility</h2>
-<p class="small">All code is in the repository. <code>bash scripts/fetch_data.sh --mutations</code>
-downloads the data; <code>pip install -r requirements.txt</code> installs the exact library
-versions; scripts <code>01_prepare.py</code> to <code>07_report.py</code> run in order on a CPU
-(under 15 minutes of training on a 15 GB laptop), and <code>check_results.py</code> runs 31
-checks on the outputs (counts, train/test leakage, WHO accuracy, report tables). Seeds are fixed,
-and a run from a fresh clone reproduced every result. Data:
-CRyPTIC release June 2022, <code>ftp.ebi.ac.uk/pub/databases/cryptic/release_june2022/</code>;
-WHO catalogue v2 (GARC), <code>github.com/oxfordmmm/tuberculosis_amr_catalogues</code>.</p>
-
 <h2>References</h2>
 <ol class="small">
 <li>The CRyPTIC Consortium. A data compendium associating the genomes of 12,289
@@ -1341,18 +1350,19 @@ https://www.biorxiv.org/content/10.64898/2026.07.03.736369v1</li>
 2026. https://link.springer.com/article/10.1186/s12879-026-14318-y</li>
 </ol>
 
-<h2>Appendix A. All models</h2>
+<!--PAGEBREAK-->
+<h2 class="newpage">Appendix A. All models</h2>
 <figure class="tbl"><figcaption>Table A1. Every model on South Asian isolates under the random split and the South Asia holdout.</figcaption><table class="dataframe">
   <thead>
     <tr style="text-align: right;">
       <th>Drug</th>
       <th>Model</th>
-      <th>auc (random)</th>
-      <th>auc (sa_holdout)</th>
-      <th>sensitivity (random)</th>
-      <th>sensitivity (sa_holdout)</th>
-      <th>specificity (random)</th>
-      <th>specificity (sa_holdout)</th>
+      <th>AUC random</th>
+      <th>AUC holdout</th>
+      <th>Sens. random</th>
+      <th>Sens. holdout</th>
+      <th>Spec. random</th>
+      <th>Spec. holdout</th>
     </tr>
   </thead>
   <tbody>
@@ -1758,4 +1768,20 @@ https://www.biorxiv.org/content/10.64898/2026.07.03.736369v1</li>
     </tr>
   </tbody>
 </table></figure>
+
+<h2>Resources</h2>
+<ul>
+<li><b>Code repository</b> (all scripts, results, figures and this report):
+<a href="https://github.com/RimjhimD/Genome-Based-Antibiotic-Resistance-Prediction-TB">https://github.com/RimjhimD/Genome-Based-Antibiotic-Resistance-Prediction-TB</a></li>
+<li><b>Dataset:</b> CRyPTIC consortium, release June 2022 —
+<a href="https://ftp.ebi.ac.uk/pub/databases/cryptic/release_june2022/">https://ftp.ebi.ac.uk/pub/databases/cryptic/release_june2022/</a></li>
+<li><b>WHO mutation catalogue</b> (2023, v2, GARC format) —
+<a href="https://github.com/oxfordmmm/tuberculosis_amr_catalogues">https://github.com/oxfordmmm/tuberculosis_amr_catalogues</a></li>
+</ul>
+<p class="small"><b>Reproducing the results.</b> <code>bash scripts/fetch_data.sh --mutations</code>
+downloads the data; <code>pip install -r requirements.txt</code> installs the exact library
+versions; scripts <code>01_prepare.py</code> to <code>07_report.py</code> run in order on a CPU
+(under 15 minutes of training on a 15 GB laptop), and <code>check_results.py</code> runs 31
+checks on the outputs (counts, train/test leakage, WHO accuracy, report tables). Seeds are fixed,
+and a run from a fresh clone reproduced every result.</p>
 </body></html>

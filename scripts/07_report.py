@@ -14,6 +14,7 @@ import pandas as pd
 import pypandoc
 from docx import Document
 from docx.enum.table import WD_TABLE_ALIGNMENT
+from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_BREAK
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Pt
@@ -127,7 +128,9 @@ auc_shift = (abl_w["auc_holdout"]["mutations + lineage"] - abl_w["auc_holdout"][
 t_all = allm[allm.test == "South Asia"].pivot_table(index=["drug", "model"], columns="protocol",
                                                      values=["auc", "sensitivity", "specificity"])
 t_all = t_all.reindex(["INH", "RIF", "EMB", "ETH", "LEV", "MXF", "KAN", "AMI"], level=0)
-t_all.columns = [f"{a} ({b})" for a, b in t_all.columns]
+NICE = {"auc": "AUC", "sensitivity": "Sens.", "specificity": "Spec.",
+        "random": "random", "sa_holdout": "holdout"}
+t_all.columns = [f"{NICE[a]} {NICE[b]}" for a, b in t_all.columns]
 t_all = t_all.map(lambda v: "" if pd.isna(v) else f"{v:.3f}").reset_index()
 t_all.columns = ["Drug", "Model"] + list(t_all.columns[2:])
 
@@ -164,12 +167,31 @@ html = f"""<!doctype html>
   .fig figcaption {{ margin-top: 4px; }}
   code {{ font-size: 10pt; }}
   .small {{ font-size: 10pt; color: #444; }}
+  h2, h3, figcaption {{ page-break-after: avoid; break-after: avoid; }}
+  tr {{ page-break-inside: avoid; break-inside: avoid; }}
+  .newpage {{ page-break-before: always; break-before: page; }}
+  .cover {{ text-align: center; page-break-after: always; break-after: page; padding-top: 70px; }}
+  .cover h1 {{ font-size: 24pt; margin: 18px 0 10px; }}
+  .cover .kind {{ font-size: 13pt; letter-spacing: 2px; text-transform: uppercase; color: #444; }}
+  .cover .sub {{ font-size: 12pt; color: #444; margin-bottom: 90px; }}
+  .cover .label {{ font-size: 11pt; text-transform: uppercase; letter-spacing: 1px; color: #666;
+                  margin: 34px 0 4px; }}
+  .cover .who {{ font-size: 13pt; margin: 0; }}
+  .cover .date {{ margin-top: 70px; font-size: 12pt; }}
 </style></head><body>
 
+<div class="cover">
+<p class="kind">Research Report</p>
 <h1>Geographic Transportability of Genome-Based Antibiotic Resistance Prediction in
 <i>Mycobacterium tuberculosis</i>: A South Asian Evaluation</h1>
-<div class="meta">Rimjhim Dey · Thesis Course, 8th Semester · October 2026<br>
-Code and data pipeline: <a href="https://github.com/RimjhimD/Genome-Based-Antibiotic-Resistance-Prediction-TB">github.com/RimjhimD/Genome-Based-Antibiotic-Resistance-Prediction-TB</a></div>
+<p class="sub">Research Track</p>
+<p class="label">Submitted to</p>
+<p class="who"><b>Imtiaz Riad</b><br>Co-Founder<br>Authentic Four Technology</p>
+<p class="label">Submitted by</p>
+<p class="who"><b>Rimjhim Dey</b></p>
+<p class="date">4 October 2026</p>
+</div>
+<!--PAGEBREAK-->
 
 <div class="abstract"><b>Abstract.</b>
 Machine learning models predict antibiotic resistance in <i>M. tuberculosis</i> from the genome in
@@ -471,16 +493,6 @@ for determinants outside the candidate genes in missed lineage 1 and 3 isolates;
 reweighting (as in FW-RF); threshold recalibration per region; and, if a paired Bangladeshi genome
 and phenotype set becomes available through collaboration, direct validation.</p>
 
-<h2>Reproducibility</h2>
-<p class="small">All code is in the repository. <code>bash scripts/fetch_data.sh --mutations</code>
-downloads the data; <code>pip install -r requirements.txt</code> installs the exact library
-versions; scripts <code>01_prepare.py</code> to <code>07_report.py</code> run in order on a CPU
-(under 15 minutes of training on a 15 GB laptop), and <code>check_results.py</code> runs 31
-checks on the outputs (counts, train/test leakage, WHO accuracy, report tables). Seeds are fixed,
-and a run from a fresh clone reproduced every result. Data:
-CRyPTIC release June 2022, <code>ftp.ebi.ac.uk/pub/databases/cryptic/release_june2022/</code>;
-WHO catalogue v2 (GARC), <code>github.com/oxfordmmm/tuberculosis_amr_catalogues</code>.</p>
-
 <h2>References</h2>
 <ol class="small">
 <li>The CRyPTIC Consortium. A data compendium associating the genomes of 12,289
@@ -508,8 +520,25 @@ https://www.biorxiv.org/content/10.64898/2026.07.03.736369v1</li>
 2026. https://link.springer.com/article/10.1186/s12879-026-14318-y</li>
 </ol>
 
-<h2>Appendix A. All models</h2>
+<!--PAGEBREAK-->
+<h2 class="newpage">Appendix A. All models</h2>
 {table(t_all, 'Table A1. Every model on South Asian isolates under the random split and the South Asia holdout.')}
+
+<h2>Resources</h2>
+<ul>
+<li><b>Code repository</b> (all scripts, results, figures and this report):
+<a href="https://github.com/RimjhimD/Genome-Based-Antibiotic-Resistance-Prediction-TB">https://github.com/RimjhimD/Genome-Based-Antibiotic-Resistance-Prediction-TB</a></li>
+<li><b>Dataset:</b> CRyPTIC consortium, release June 2022 —
+<a href="https://ftp.ebi.ac.uk/pub/databases/cryptic/release_june2022/">https://ftp.ebi.ac.uk/pub/databases/cryptic/release_june2022/</a></li>
+<li><b>WHO mutation catalogue</b> (2023, v2, GARC format) —
+<a href="https://github.com/oxfordmmm/tuberculosis_amr_catalogues">https://github.com/oxfordmmm/tuberculosis_amr_catalogues</a></li>
+</ul>
+<p class="small"><b>Reproducing the results.</b> <code>bash scripts/fetch_data.sh --mutations</code>
+downloads the data; <code>pip install -r requirements.txt</code> installs the exact library
+versions; scripts <code>01_prepare.py</code> to <code>07_report.py</code> run in order on a CPU
+(under 15 minutes of training on a 15 GB laptop), and <code>check_results.py</code> runs 31
+checks on the outputs (counts, train/test leakage, WHO accuracy, report tables). Seeds are fixed,
+and a run from a fresh clone reproduced every result.</p>
 </body></html>
 """
 (OUT / "report.html").write_text(html)
@@ -519,13 +548,40 @@ print(f"wrote {OUT / 'report.html'} ({len(html) / 1e6:.1f} MB)")
 # ---- Word version ---------------------------------------------------------------
 # Pandoc gives clean paragraphs, lists and images; tables then get full page width
 # and a smaller font so numbers do not wrap. Captions go above tables.
-src = re.sub(r"<title>.*?</title>", "", html)
+src = re.sub(r"<title>.*?</title>", "", html).replace("<!--PAGEBREAK-->", "<p>PAGEBREAK</p>")
 src = re.sub(r'<figure class="tbl"><figcaption>(.*?)</figcaption>(.*?)</figure>',
              r"<p><b>\1</b></p>\2", src, flags=re.S)
 docx_path = OUT / "report.docx"
 pypandoc.convert_text(src, "docx", format="html", outputfile=str(docx_path))
 
 doc = Document(str(docx_path))
+pars = doc.paragraphs
+first_break = next(i for i, p_ in enumerate(pars) if p_.text.strip() == "PAGEBREAK")
+for i, par in enumerate(pars[:first_break]):  # cover page
+    par.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    par.paragraph_format.space_after = Pt(6)
+    text = par.text.strip()
+    if text == "Research Report":
+        par.paragraph_format.space_before = Pt(80)
+    if text in ("Submitted to", "Submitted by"):
+        par.paragraph_format.space_before = Pt(36)
+        for run in par.runs:
+            run.font.size = Pt(10)
+            run.font.all_caps = True
+    if text == "Research Track":
+        par.paragraph_format.space_after = Pt(60)
+    if text == "4 October 2026":
+        par.paragraph_format.space_before = Pt(70)
+for par in pars:
+    if par.text.strip() == "PAGEBREAK":
+        for run in par.runs:
+            run.text = ""
+        (par.runs[0] if par.runs else par.add_run()).add_break(WD_BREAK.PAGE)
+    style = par.style.name if par.style is not None else ""
+    is_caption = par.text.startswith("Table ") and any(r.font.bold for r in par.runs)
+    has_image = bool(par._p.xpath(".//pic:pic"))
+    if style.startswith("Heading") or style == "Title" or is_caption or has_image:
+        par.paragraph_format.keep_with_next = True
 for t in doc.tables:
     t.alignment = WD_TABLE_ALIGNMENT.CENTER
     tbl_pr = t._tbl.tblPr

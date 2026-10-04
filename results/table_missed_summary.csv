@@ -1,0 +1,9 @@
+drug,missed_R,caught_R,missed_with_no_candidate_mutation,missed_also_missed_by_WHO
+INH,75,1206,8,69
+RIF,64,1151,18,45
+EMB,74,541,9,65
+ETH,81,256,21,79
+LEV,92,564,0,82
+MXF,49,458,0,37
+KAN,29,118,21,26
+AMI,32,92,22,30

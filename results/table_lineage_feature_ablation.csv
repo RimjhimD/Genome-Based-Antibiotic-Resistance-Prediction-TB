@@ -1,0 +1,17 @@
+drug,model,features,auc_random_all,auc_holdout,sens_holdout,spec_holdout,sens_holdout_1,sens_holdout_3
+INH,LR,mutations only,0.974,0.966,0.941,0.96,0.836,0.911
+INH,LR,mutations + lineage,0.976,0.968,0.942,0.955,0.836,0.913
+RIF,LR,mutations only,0.976,0.963,0.947,0.928,0.879,0.909
+RIF,LR,mutations + lineage,0.977,0.964,0.951,0.925,0.879,0.909
+EMB,LR,mutations only,0.964,0.944,0.88,0.871,0.783,0.823
+EMB,LR,mutations + lineage,0.965,0.944,0.88,0.866,0.783,0.823
+ETH,XGB,mutations only,0.95,0.891,0.76,0.894,0.884,0.611
+ETH,XGB,mutations + lineage,0.954,0.897,0.766,0.889,0.884,0.583
+LEV,XGB,mutations only,0.944,0.928,0.86,0.928,0.536,0.778
+LEV,XGB,mutations + lineage,0.947,0.93,0.87,0.922,0.536,0.795
+MXF,XGB,mutations only,0.938,0.928,0.903,0.847,0.538,0.786
+MXF,XGB,mutations + lineage,0.942,0.93,0.917,0.844,0.538,0.8
+KAN,RF,mutations only,0.931,0.862,0.803,0.765,,0.75
+KAN,RF,mutations + lineage,0.936,0.865,0.81,0.749,,0.694
+AMI,RF,mutations only,0.933,0.859,0.742,0.81,,0.656
+AMI,RF,mutations + lineage,0.935,0.862,0.726,0.844,,0.562

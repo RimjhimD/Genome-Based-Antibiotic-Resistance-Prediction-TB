@@ -1,0 +1,94 @@
+MAIN TABLE (South Asian isolates; best model per drug chosen on random-CV AUC)
+drug best_model  n_SA  n_R_SA  sens_random  sens_holdout  spec_random  spec_holdout  auc_random  auc_holdout  sens_WHO  spec_WHO  sens_drop  auc_drop
+ INH         LR  1927    1281        0.949         0.941        0.960         0.960       0.968        0.966     0.945     0.957      0.008     0.002
+ RIF         LR  1893    1215        0.951         0.947        0.923         0.928       0.964        0.963     0.960     0.901      0.003     0.001
+ EMB         LR  1314     615        0.940         0.880        0.857         0.871       0.945        0.944     0.865     0.861      0.060     0.001
+ ETH        XGB  1692     337        0.816         0.760        0.867         0.894       0.909        0.891     0.694     0.920      0.056     0.018
+ LEV        XGB  1569     656        0.873         0.860        0.901         0.928       0.925        0.928     0.873     0.922      0.014    -0.003
+ MXF        XGB  1527     507        0.923         0.903        0.854         0.847       0.930        0.928     0.915     0.832      0.020     0.002
+ KAN         RF  1914     147        0.735         0.803        0.865         0.765       0.864        0.862     0.660     0.969     -0.068     0.002
+ AMI         RF  1940     124        0.669         0.742        0.925         0.810       0.865        0.859     0.613     0.988     -0.073     0.006
+
+LEAVE-ONE-COUNTRY-OUT AUC (best model)
+drug    INH    RIF    EMB    ETH    LEV    MXF    KAN    AMI
+test                                                        
+BRA   0.924  0.952  0.994  0.999    NaN    NaN    NaN  0.629
+CHN   0.935  0.942  0.954  0.878  0.854  0.866  0.829  0.786
+DEU   1.000  0.998    NaN  0.981  0.991    NaN  0.972    NaN
+IND   0.961  0.963  0.951  0.908  0.924  0.943  0.874  0.881
+ITA   1.000  0.994  0.944  0.976  0.957  0.912  0.939  0.971
+NPL   1.000  0.999    NaN    NaN  0.929    NaN    NaN    NaN
+PAK   0.925  0.918  0.903  0.887  0.873  0.853  0.864  0.841
+PER   0.980  0.979  0.955  0.952  0.878  0.880  0.969  0.976
+SWE     NaN  0.569  0.730  0.769  0.641  0.651  0.807  0.860
+VNM   0.974  0.981  0.942  0.894  0.751  0.808    NaN  0.508
+ZAF   0.953  0.975  0.970  0.954  0.969  0.967  0.872  0.977
+
+LEAVE-ONE-COUNTRY-OUT sensitivity (best model)
+drug    INH    RIF    EMB    ETH    LEV    MXF    KAN    AMI
+test                                                        
+BRA   0.863  0.865  0.957  1.000    NaN    NaN    NaN  0.200
+CHN   0.831  0.852  0.782  0.521  0.689  0.708  0.619  0.477
+DEU   1.000  0.986    NaN  0.842  1.000    NaN  0.850    NaN
+IND   0.949  0.954  0.878  0.827  0.890  0.927  0.696  0.587
+ITA   0.991  0.944  0.951  0.946  0.862  0.841  0.747  0.915
+NPL   1.000  1.000    NaN    NaN  0.955    NaN    NaN    NaN
+PAK   0.912  0.928  0.953  0.731  0.765  0.753  0.759  0.690
+PER   0.930  0.945  0.515  0.789  0.650  0.685  0.829  0.847
+SWE   1.000  0.988  0.959  0.950  0.945  0.915  0.937  0.878
+VNM   0.938  0.893  0.839  0.736  0.500  0.455    NaN  0.100
+ZAF   0.868  0.887  0.924  0.836  0.865  0.882  0.776  0.922
+
+SA HOLDOUT SENSITIVITY BY LINEAGE
+lineage  Lineage 1  Lineage 2  Lineage 3  Lineage 4  Mixed
+drug                                                      
+INH          0.836      0.992      0.911      0.942  0.478
+RIF          0.879      0.990      0.909      0.970  0.350
+EMB          0.783      0.905      0.823      0.924  0.500
+ETH          0.884      0.777      0.611      0.771    NaN
+LEV          0.536      0.938      0.778      0.849  0.462
+MXF          0.538      0.952      0.786      0.905    NaN
+KAN            NaN      0.912      0.750      0.850    NaN
+AMI            NaN      0.864      0.656      0.812    NaN
+
+MISSED RESISTANT SOUTH ASIAN ISOLATES
+drug  missed_R  caught_R  missed_with_no_candidate_mutation  missed_also_missed_by_WHO
+ INH        75      1206                                  8                         69
+ RIF        64      1151                                 18                         45
+ EMB        74       541                                  9                         65
+ ETH        81       256                                 21                         79
+ LEV        92       564                                  0                         82
+ MXF        49       458                                  0                         37
+ KAN        29       118                                 21                         26
+ AMI        32        92                                 22                         30
+
+TOP MUTATIONS IN MISSED ISOLATES (rare or absent among resistant training isolates)
+drug   mutation  missed_SA_isolates            lineages  train_R_carriers  train_S_carriers
+ EMB embC_A387V                  36           Lineage 2                 0                 0
+ EMB embB_Q445R                  34           Lineage 2                 4                 0
+ EMB embC_R738Q                  20           Lineage 3                 3                83
+ EMB embA_V206M                   3           Lineage 1                 2               161
+ ETH ethA_C137R                   3           Lineage 2                 0                 1
+ INH ahpC_t-76a                   5           Lineage 3                 0                 0
+ INH katG_T380I                   3           Lineage 1                 0                 0
+ LEV gyrA_A384V                  13           Lineage 1                 7               270
+ LEV gyrB_M291I                  13           Lineage 1                 7               266
+ LEV gyrA_c-34t                   6           Lineage 1                 3                33
+ LEV gyrB_N499T                   3 Lineage 2,Lineage 4                 3                 0
+ MXF gyrA_A384V                   6           Lineage 1                 4               228
+ MXF gyrB_M291I                   6           Lineage 1                 4               225
+ RIF rpoC_P601L                   6     Lineage 1,Mixed                 8               222
+ RIF rpoB_S441L                   3     Lineage 3,Mixed                 3                 0
+
+figures written to results/
+
+CONFUSION (South Asia holdout, best model)
+drug model   TP  FN  FP   TN
+ INH    LR 1206  75  26  620
+ RIF    LR 1151  64  49  629
+ EMB    LR  541  74  90  609
+ ETH   XGB  256  81 144 1211
+ LEV   XGB  564  92  66  847
+ MXF   XGB  458  49 156  864
+ KAN    RF  118  29 415 1352
+ AMI    RF   92  32 345 1471

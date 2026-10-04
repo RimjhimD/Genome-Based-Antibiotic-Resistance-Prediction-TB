@@ -32,7 +32,10 @@ DEU  851   ITA  538   PAK  519   BRA  404   NPL  303
 TKM  258   SWE  102   BFA   78   NGA   33   UKR   30
 ```
 
-**India + Pakistan + Nepal = 5,907 isolates.** That is the test set, and the whole play.
+India + Pakistan + Nepal = 5,907 *samples* in `SAMPLES.csv.gz`. **Correction (2026-10-04):**
+that counts every sample, labelled or not. Isolates that also carry a resistance phenotype in the
+reuse table number **2,162** (India 1,476 · Pakistan 489 · Nepal 197), after filling missing
+countries from single-country sites. That is the real test set.
 Note: no USA isolates in CRyPTIC.
 
 ### Lineages

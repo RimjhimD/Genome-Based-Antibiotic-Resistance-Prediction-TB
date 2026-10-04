@@ -31,11 +31,11 @@ tests it on South Asian strains, and measures what breaks.
 | | |
 |---|---|
 | **Data** | CRyPTIC consortium — 12,287 clinical isolates, laboratory-confirmed resistance for 13 drugs, precomputed genomic variants, country and lineage metadata |
-| **Test set** | 5,907 isolates from India, Pakistan and Nepal |
-| **Features** | Binary mutation matrix (mutation present / absent per isolate) |
+| **Test set** | 2,162 labelled isolates from India (1,476), Pakistan (489) and Nepal (197) |
+| **Features** | Binary matrix of 1,021 mutations in 23 WHO-catalogue resistance genes |
 | **Models** | Logistic regression, random forest, gradient boosting, shallow neural network — one per drug |
 | **Protocols** | Random split (baseline) · leave-one-country-out · South Asia holdout |
-| **Leakage control** | Splits aware of lineage and transmission clustering, so near-identical strains never sit on both sides |
+| **Leakage control** | Transmission clusters (≤12 SNPs, same lineage) kept on one side of every split |
 | **Benchmark** | WHO mutation catalogue, on the same isolates |
 | **Output** | Per-drug accuracy loss, and the resistance mutations missed in lineage 1 and 3 strains |
 
@@ -47,13 +47,24 @@ Everything runs on CPU. No raw sequencing reads are processed.
 - [x] Datasets located and verified by download — [details](docs/03-datasets.md)
 - [x] Literature reviewed, gap identified — [details](docs/04-literature-and-gap.md)
 - [x] Scope and 15-day plan fixed — [details](docs/02-scope-and-plan.md)
-- [ ] Step 1 — data preparation: join genotype, phenotype, country, lineage
-- [ ] Step 2 — binary mutation feature matrix
-- [ ] Step 3 — lineage- and cluster-aware splits
-- [ ] Step 4 — per-drug models
-- [ ] Step 5 — evaluation across the three protocols + WHO catalogue
-- [ ] Step 6 — error analysis on South Asian isolates
-- [ ] Step 7 — write-up
+- [x] Step 1 — data preparation: join genotype, phenotype, country, lineage — `scripts/01_prepare.py`
+- [x] Step 2 — binary mutation feature matrix — `scripts/02_features.py`
+- [x] Step 3 — transmission clusters for leakage-safe splits — `scripts/03_clusters.py`
+- [x] Step 4 — per-drug models (LR, RF, XGBoost, MLP) — `scripts/04_evaluate.py`
+- [x] Step 5 — evaluation across the three protocols + WHO catalogue — `scripts/04_evaluate.py`, `scripts/who_catalogue.py`
+- [x] Step 6 — error analysis on South Asian isolates, confusion matrices, lineage-as-feature ablation — `scripts/05_analysis.py`, `scripts/06_lineage_check.py`, `scripts/06b_lineage_feature.py`
+- [x] Step 7 — write-up — [report/report.pdf](report/report.pdf) (also `.docx`, `.html`), built by `scripts/07_report.py`
+
+## Main finding
+
+Aggregate accuracy transfers: AUC on South Asian isolates drops by at most 0.018 when South
+Asian isolates are withheld from training. **By lineage it does not.** Resistant lineage 1 and
+lineage 3 isolates are detected 11–41 percentage points less often than lineage 2 isolates
+(levofloxacin: 53.6% on lineage 1 vs 93.8% on lineage 2). The same deficit appears for models
+that did see South Asian data and for the WHO 2023 catalogue, so it reflects missing knowledge of
+resistance mechanisms in these lineages, not only where the training data came from. A
+region-specific failure: ethambutol resistance in a South Asian lineage 2 group carrying
+*embC* A387V / *embB* Q445R, mutations absent or nearly absent among resistant training isolates.
 
 Day-by-day record: [research-log/](research-log/)
 
@@ -70,7 +81,12 @@ Day-by-day record: [research-log/](research-log/)
 │   └── 04-literature-and-gap.md    what is already published, where the gap is
 ├── research-log/                   one file per working day
 ├── scripts/
-│   └── fetch_data.sh               re-downloads every dataset used
+│   ├── fetch_data.sh               re-downloads every dataset used
+│   ├── 01_prepare.py … 07_report.py  the pipeline, run in order
+│   ├── common.py                   shared model settings
+│   └── who_catalogue.py            applies the WHO 2023 catalogue to mutation calls
+├── results/                        metrics, tables (CSV), figures (PNG), logs
+├── report/                         the written report: PDF, DOCX, HTML
 └── data/                           downloaded data (not committed) — see data/README.md
 ```
 
@@ -80,15 +96,22 @@ Day-by-day record: [research-log/](research-log/)
 git clone https://github.com/RimjhimD/Genome-Based-Antibiotic-Resistance-Prediction-TB.git
 cd Genome-Based-Antibiotic-Resistance-Prediction-TB
 bash scripts/fetch_data.sh --mutations
+python3 -m venv .venv && .venv/bin/pip install pandas numpy scipy scikit-learn xgboost matplotlib pyarrow
+for s in 01_prepare 02_features 03_clusters 04_evaluate 05_analysis 06_lineage_check 06b_lineage_feature 07_report; do
+  .venv/bin/python scripts/$s.py
+done
+google-chrome --headless --no-pdf-header-footer --print-to-pdf=report/report.pdf report/report.html
 ```
 
-## Key numbers so far
+
+## Key numbers
 
 ```
 Isolates with resistance labels   12,287
 Drugs                                 13
-South Asian test isolates          5,907   (India 5,085 · Pakistan 519 · Nepal 303)
-Lineage 1 / Lineage 3 records      5,812 / 8,416
+South Asian isolates with labels   2,162   (India 1,476 · Pakistan 489 · Nepal 197)
+Lineages in South Asia             L1 13% · L2 34% · L3 37% · L4 14%
+Lineages in the rest               L1  4% · L2 37% · L3  2% · L4 56%
 Isoniazid   5,907 R / 6,161 S
 Rifampicin  4,683 R / 7,414 S
 Bedaquiline   109 R            -> dropped, too few resistant cases

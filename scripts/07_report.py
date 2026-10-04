@@ -3,12 +3,20 @@
 Tables are read from results/*.csv so the numbers in the report are the
 numbers the pipeline produced. Figures are embedded so the file stands alone.
 
-Output report/report.html  (then: PDF via Chrome, DOCX via LibreOffice - see README)
+Output report/report.html, report/report.docx (via pandoc, for Word / Google Docs).
+The PDF is printed from the HTML with Chrome - see README.
 """
 import base64
+import re
 from pathlib import Path
 
 import pandas as pd
+import pypandoc
+from docx import Document
+from docx.enum.table import WD_TABLE_ALIGNMENT
+from docx.oxml import OxmlElement
+from docx.oxml.ns import qn
+from docx.shared import Pt
 
 ROOT = Path(__file__).resolve().parents[1]
 RES, PROC, OUT = ROOT / "results", ROOT / "data" / "processed", ROOT / "report"
@@ -22,6 +30,7 @@ loco = pd.read_csv(RES / "table_loco_sensitivity.csv", index_col=0)
 missed = pd.read_csv(RES / "table_missed_summary.csv")
 mm = pd.read_csv(RES / "missed_mutations.csv")
 allm = pd.read_csv(RES / "metrics.csv")
+pred = pd.read_csv(RES / "predictions_sa_holdout.csv")
 abl = pd.read_csv(RES / "table_lineage_feature_ablation.csv")
 
 known = iso[iso.country != "UNKNOWN"]
@@ -55,17 +64,43 @@ t_main.columns = ["Drug", "Model", "Test isolates", "Resistant", "Sens. random",
                   "Spec. random", "Spec. holdout", "AUC random", "AUC holdout", "Sens. WHO",
                   "Spec. WHO"]
 
+# 95% Wilson score intervals for per-lineage sensitivity in the holdout.
+def wilson(k, n, z=1.96):
+    p = k / n
+    d = 1 + z * z / n
+    c = (p + z * z / (2 * n)) / d
+    h = z * (p * (1 - p) / n + z * z / (4 * n * n)) ** 0.5 / d
+    return c - h, c + h
+
+
+lin[["ci_lo", "ci_hi"]] = [wilson(round(r.sens_holdout * r.n_R), r.n_R) for r in lin.itertuples()]
+DRUG_NAMES = {"INH": "isoniazid", "RIF": "rifampicin", "EMB": "ethambutol", "ETH": "ethionamide",
+              "LEV": "levofloxacin", "MXF": "moxifloxacin", "KAN": "kanamycin", "AMI": "amikacin"}
+clear, overlap = [], []
+for d in DRUG_NAMES:
+    s_ = lin[lin.drug == d].set_index("lineage")
+    worst = s_.loc[s_.index.isin(["Lineage 1", "Lineage 3"])].sens_holdout.idxmin()
+    (clear if s_.loc[worst, "ci_hi"] < s_.loc["Lineage 2", "ci_lo"] else overlap).append(DRUG_NAMES[d])
+
+
+def names(xs):
+    return ", ".join(xs[:-1]) + " and " + xs[-1]
+
+
 # Table 3: lineage
 t_lin = lin.copy()
+t_lin["ci"] = [f"{a:.0%}–{b:.0%}" for a, b in zip(lin.ci_lo, lin.ci_hi)]
 for c in ["sens_random", "sens_holdout", "sens_WHO"]:
     t_lin[c] = t_lin[c].map(pct)
 t_lin["drop"] = t_lin["drop"].map(lambda v: f"{v * 100:+.1f} pp")
+t_lin["lineage"] = t_lin.lineage.str.replace("Lineage ", "L")
+t_lin = t_lin[["drug", "lineage", "n_R", "sens_random", "sens_holdout", "ci", "sens_WHO", "drop"]]
 t_lin.columns = ["Drug", "Lineage", "Resistant isolates", "Sens. random", "Sens. holdout",
-                 "Sens. WHO", "Random − holdout"]
+                 "95% CI (holdout)", "Sens. WHO", "Random − holdout"]
 
 # Table 4: LOCO
 t_loco = loco.map(lambda v: "" if pd.isna(v) else f"{v:.2f}")
-t_loco.index.name = "Held-out country"
+t_loco = t_loco.reset_index().rename(columns={t_loco.index.name or "index": "Held-out country"})
 
 # Table 5: missed summary
 t_miss = missed.copy()
@@ -120,6 +155,7 @@ html = f"""<!doctype html>
   table {{ border-collapse: collapse; font-size: 9.5pt; font-family: Arial, sans-serif;
            margin: 6px 0 4px; width: 100%; }}
   th, td {{ border-bottom: 1px solid #ddd; padding: 3px 6px; text-align: right; }}
+  td {{ white-space: nowrap; }}
   th {{ background: #f0efec; }}
   td:first-child, th:first-child {{ text-align: left; }}
   figure {{ margin: 16px 0; page-break-inside: avoid; }}
@@ -148,7 +184,8 @@ leave-one-country-out, with transmission clusters kept on one side of every spli
 against the WHO 2023 mutation catalogue. Aggregate performance transferred well: AUC on South Asian
 isolates fell by at most {main.auc_drop.max():.3f} when South Asian data were withheld from
 training. Stratifying by lineage told a different story. Resistant lineage 1 and lineage 3 isolates
-were detected far less often than lineage 2 isolates (for example levofloxacin sensitivity
+were detected less often than lineage 2 isolates, with non-overlapping 95% confidence intervals
+for {names(clear)} (for example levofloxacin sensitivity
 {pct(L('LEV', 'Lineage 1', 'sens_holdout'))} on lineage 1 against {pct(L('LEV', 'Lineage 2', 'sens_holdout'))}
 on lineage 2), and this deficit was shared by models that had seen South Asian data and by the WHO
 catalogue, which uses no training data at all. The weakness is therefore in what is known about
@@ -157,20 +194,39 @@ failures were also found: ethambutol resistance in a South Asian lineage 2 group
 <i>embC</i> A387V and <i>embB</i> Q445R, mutations absent or nearly absent among resistant training isolates, was
 missed in {mm[(mm.drug == 'EMB') & (mm.mutation == 'embC_A387V')].missed_SA_isolates.item()} isolates.
 </div>
+<p class="small"><b>Keywords:</b> antimicrobial resistance · tuberculosis · whole-genome sequencing ·
+machine learning · lineage · model generalisation · South Asia</p>
+
+<div class="abstract"><b>Summary in plain language.</b>
+Tuberculosis (TB) bacteria can become resistant to antibiotics through small changes (mutations)
+in their DNA. Computer models can read these mutations and say which drugs will fail, in days
+instead of the weeks a laboratory test takes. TB bacteria come in families called lineages.
+Most models were built from lineages 2 and 4, common in Europe and East Asia, while South Asia
+(including Bangladesh) has mostly lineages 1 and 3. We asked: do these models still work on South
+Asian TB? We trained four kinds of model only on isolates from outside South Asia
+({pred.n_train.min():,}–{pred.n_train.max():,} per drug) and tested them on {len(sa):,} isolates
+from India, Pakistan and Nepal. <b>Overall they worked about
+as well as usual. But for lineage 1 and lineage 3 bacteria they missed many more resistant cases</b>
+— for levofloxacin, about half of resistant lineage 1 cases were missed, against about 6% for
+lineage 2. The official WHO mutation list misses the same cases, so the problem is that the
+resistance mutations of these South Asian lineages are not yet well known. Missing a resistant
+case means a patient may get a drug that will not work, so South Asia needs resistance knowledge
+built from its own lineages.
+</div>
 
 <h2>1. Introduction</h2>
 <p>Tuberculosis remains among the leading infectious causes of death, and drug resistance is the
 main obstacle to treating it. Culture-based drug-susceptibility testing takes weeks. Whole-genome
 sequencing offers a faster route: resistance in <i>M. tuberculosis</i> arises almost entirely from
 chromosomal mutations, so a model that knows which mutations matter can read resistance off the
-genome. The WHO mutation catalogue (2021, updated 2023) and machine learning classifiers built on
-large collections such as CRyPTIC report high accuracy for first-line drugs.</p>
+genome. The WHO mutation catalogue (2021, updated 2023) [2] and machine learning classifiers built
+on large collections such as CRyPTIC [1] report high accuracy for first-line drugs [11].</p>
 <p>That accuracy is measured on strains like those the models were built from. The <i>M.
 tuberculosis</i> complex is divided into lineages with distinct geography: lineages 2 and 4
 dominate East Asia, Europe and the Americas, while lineages 1 and 3 predominate in South Asia,
-including India and Bangladesh. Resistance knowledge is biased toward the globally dominant
-lineages, and China built a national catalogue because the global one under-performed locally. No
-comparable evaluation exists for South Asia.</p>
+including India [8]. Resistance knowledge is biased toward the globally dominant
+lineages [8], and China built a national catalogue because the global one under-performed locally
+[6]. No comparable evaluation exists for South Asia.</p>
 <p><b>Research question.</b> Do genome-based resistance models still work on South Asian strains,
 and if not, which resistance cases do they miss? This report presents the full pilot study: data
 preparation, feature construction, leakage-controlled evaluation under three protocols, a WHO
@@ -178,19 +234,17 @@ catalogue benchmark and an error analysis by lineage.</p>
 
 <h2>2. Related work</h2>
 <p>First-line prediction is mature: published models reach AUC of about 0.99 for rifampicin and
-0.98 for isoniazid, and most report at least 90% sensitivity for isoniazid. The WHO catalogue is
-the clinical reference, implemented in tools such as TB-Profiler and Mykrobe. MIC regression on
-CRyPTIC has been published for 13 drugs (PLOS Computational Biology, 2024). The Farhat group's
-GenTB and their study of geographic heterogeneity (2020) are the closest prior work on
-cross-region transfer. Lineage dependence has been addressed by feature reweighting (FW-RF,
-Bioinformatics 2023) and by China's national catalogue (Lancet Microbe, 2024). Recent benchmarks
-(TB-Bench and a translational benchmark, both 2026) name second-line and newer drugs as the open
+0.98 for isoniazid, and most report at least 90% sensitivity for isoniazid [11]. The WHO catalogue
+[2] is the clinical reference, implemented in tools such as TB-Profiler and Mykrobe. MIC
+regression on CRyPTIC has been published for 13 drugs [7]. The Farhat group's GenTB [3] and their
+study of geographic heterogeneity [4] are the closest prior work on cross-region transfer.
+Lineage dependence has been addressed by feature reweighting (FW-RF) [5] and by China's national
+catalogue [6]. Recent benchmarks [9, 10] name second-line and newer drugs as the open
 problems. What remains untested is a lineage-resolved evaluation on South Asian isolates with
 transmission-aware splits, and that is the contribution here.</p>
 
 <h2>3. Data</h2>
-<p><b>Source.</b> CRyPTIC consortium, release June 2022 (PLOS Biology 20(8), 2022), public EBI
-FTP. We used the reuse table of {len(iso):,} isolates with binary resistant/susceptible phenotypes
+<p><b>Source.</b> CRyPTIC consortium, release June 2022 [1], public EBI FTP. We used the reuse table of {len(iso):,} isolates with binary resistant/susceptible phenotypes
 from UKMYC microtitre plates, the per-isolate mutation table (<code>MUTATIONS_GPI</code>), sample
 metadata for country, Mykrobe lineage calls and the consortium's precomputed pairwise SNP
 distances.</p>
@@ -258,8 +312,8 @@ turn.</li>
 looks at the holdout. Metrics are sensitivity (share of resistant isolates detected; its complement
 is the very major error rate, the clinically dangerous miss), specificity, AUC and F1.</p>
 <h3>4.5 WHO catalogue benchmark</h3>
-<p>The WHO 2023 catalogue (v2, in the GARC grammar maintained by the Oxford group behind CRyPTIC)
-was applied to the same mutation calls: an isolate is called resistant if it carries any mutation
+<p>The WHO 2023 catalogue [2] (v2, in the GARC grammar maintained by the Oxford group behind
+CRyPTIC) was applied to the same mutation calls: an isolate is called resistant if it carries any mutation
 graded group 1 or 2 for that drug, including codon wildcards, gene-level frameshift and stop rules,
 and indel rules. Applied to all isolates, our implementation gives sensitivity/specificity of
 about 96%/95% for rifampicin and 93%/98% for isoniazid, in line with published CRyPTIC figures.</p>
@@ -298,7 +352,11 @@ isoniazid sensitivity was {pct(L('INH', 'Lineage 1', 'sens_holdout'))} on lineag
 {pct(L('LEV', 'Lineage 1', 'sens_holdout'))} against {pct(L('LEV', 'Lineage 2', 'sens_holdout'))};
 moxifloxacin {pct(L('MXF', 'Lineage 1', 'sens_holdout'))} against
 {pct(L('MXF', 'Lineage 2', 'sens_holdout'))}; ethionamide {pct(L('ETH', 'Lineage 3', 'sens_holdout'))}
-on lineage 3; and amikacin {pct(L('AMI', 'Lineage 3', 'sens_holdout'))} on lineage 3.</p>
+on lineage 3; and amikacin {pct(L('AMI', 'Lineage 3', 'sens_holdout'))} on lineage 3. Some of these
+groups are small, so Table 2 gives 95% confidence intervals (Wilson score). For {names(clear)}
+the interval for the worst lineage does not overlap the lineage 2 interval, so the gap is clear.
+For {names(overlap)} the gap points the same way but the intervals overlap, so it is suggestive
+rather than established.</p>
 <p>The deciding comparison is between the three columns. If the deficit came from training on
 foreign strains, the random-split models, which did see South Asian lineage 1 and 3 isolates,
 should recover it. They mostly do not: lineage 1 levofloxacin sensitivity is
@@ -324,7 +382,7 @@ for China, Pakistan and India on the injectable drugs. The South Asian countries
 India and Nepal transfer well for first-line drugs, while Pakistan loses ground on ethionamide,
 the fluoroquinolones and the aminoglycosides. Small held-out sets (for example amikacin in Brazil)
 give unstable estimates.</p>
-{table(t_loco, 'Table 3. Leave-one-country-out sensitivity of the best model (blank: fewer than 10 resistant isolates).', index=True)}
+{table(t_loco, 'Table 3. Leave-one-country-out sensitivity of the best model (blank: fewer than 10 resistant isolates).')}
 <figure class="fig">{img('fig_loco_sensitivity.png')}
 <figcaption>Figure 5. Leave-one-country-out sensitivity.</figcaption></figure>
 
@@ -372,9 +430,9 @@ problem.</p>
 isolates, which make up half of the South Asian isolates here but only a few percent of the training
 population,
 are detected 11 to 41 percentage points less often than lineage 2 isolates, depending on the
-drug.
+drug; the gap is statistically clear for {names(clear)}.
 Because the deficit appears with and without South Asian training data and in the WHO catalogue
-alike, more data from the same genes would not fix it. The resistance mechanisms of these lineages
+alike, more training data from the same genes alone is unlikely to fix it. The resistance mechanisms of these lineages
 are less well characterised. That is the same reasoning that led China to build a national
 catalogue, and these results argue for a lineage-aware South Asian equivalent. The relevance to
 Bangladesh follows from lineage rather than from local sampling, since lineages 1 and 3 are also
@@ -387,8 +445,8 @@ geography: a model never shown a local resistant clade cannot learn its mutation
 <h2>7. Limitations</h2>
 <ul>
 <li>Lineage 1 resistant counts are small for some drugs (13 for moxifloxacin, 23 for ethambutol),
-so those per-lineage estimates carry wide uncertainty; confidence intervals were not computed in
-this pilot.</li>
+so those per-lineage estimates carry wide 95% intervals (Table 2), and for {names(overlap)} the
+lineage gap is not statistically established.</li>
 <li>South Asian isolates come mainly from one Mumbai referral centre and from referral
 laboratories, and are enriched for drug resistance; they are not a population sample.</li>
 <li>Features are restricted to 23 known resistance genes. Resistance outside them cannot be
@@ -407,15 +465,19 @@ phenotype.</li>
 <p>Genome-based resistance prediction in <i>M. tuberculosis</i> transfers to South Asian isolates
 on aggregate, but systematically under-detects resistance in lineages 1 and 3, the families that
 dominate the region, and this weakness is shared by the WHO catalogue. Next steps for the thesis
-semester: bootstrap confidence intervals for every lineage estimate; genome-wide features to look
+semester: larger lineage 1 and 3 samples to settle the drugs where the gap is not yet
+statistically clear; genome-wide features to look
 for determinants outside the candidate genes in missed lineage 1 and 3 isolates; lineage-aware
 reweighting (as in FW-RF); threshold recalibration per region; and, if a paired Bangladeshi genome
 and phenotype set becomes available through collaboration, direct validation.</p>
 
 <h2>Reproducibility</h2>
 <p class="small">All code is in the repository. <code>bash scripts/fetch_data.sh --mutations</code>
-downloads the CRyPTIC tables; scripts <code>01_prepare.py</code> to <code>07_report.py</code> run
-in order on a CPU (under 15 minutes of training on a 15 GB laptop). Seeds are fixed. Data:
+downloads the data; <code>pip install -r requirements.txt</code> installs the exact library
+versions; scripts <code>01_prepare.py</code> to <code>07_report.py</code> run in order on a CPU
+(under 15 minutes of training on a 15 GB laptop), and <code>check_results.py</code> runs 31
+checks on the outputs (counts, train/test leakage, WHO accuracy, report tables). Seeds are fixed,
+and a run from a fresh clone reproduced every result. Data:
 CRyPTIC release June 2022, <code>ftp.ebi.ac.uk/pub/databases/cryptic/release_june2022/</code>;
 WHO catalogue v2 (GARC), <code>github.com/oxfordmmm/tuberculosis_amr_catalogues</code>.</p>
 
@@ -452,3 +514,46 @@ https://www.biorxiv.org/content/10.64898/2026.07.03.736369v1</li>
 """
 (OUT / "report.html").write_text(html)
 print(f"wrote {OUT / 'report.html'} ({len(html) / 1e6:.1f} MB)")
+
+
+# ---- Word version ---------------------------------------------------------------
+# Pandoc gives clean paragraphs, lists and images; tables then get full page width
+# and a smaller font so numbers do not wrap. Captions go above tables.
+src = re.sub(r"<title>.*?</title>", "", html)
+src = re.sub(r'<figure class="tbl"><figcaption>(.*?)</figcaption>(.*?)</figure>',
+             r"<p><b>\1</b></p>\2", src, flags=re.S)
+docx_path = OUT / "report.docx"
+pypandoc.convert_text(src, "docx", format="html", outputfile=str(docx_path))
+
+doc = Document(str(docx_path))
+for t in doc.tables:
+    t.alignment = WD_TABLE_ALIGNMENT.CENTER
+    tbl_pr = t._tbl.tblPr
+    for tag in ("w:tblW", "w:tblLayout", "w:tblBorders"):
+        for el in tbl_pr.findall(qn(tag)):
+            tbl_pr.remove(el)
+    width = OxmlElement("w:tblW")
+    width.set(qn("w:type"), "pct")
+    width.set(qn("w:w"), "5000")  # 100% of the text width
+    tbl_pr.append(width)
+    borders = OxmlElement("w:tblBorders")
+    for edge in ("top", "bottom", "insideH"):
+        b = OxmlElement(f"w:{edge}")
+        b.set(qn("w:val"), "single")
+        b.set(qn("w:sz"), "4")
+        b.set(qn("w:color"), "BBBBBB")
+        borders.append(b)
+    tbl_pr.append(borders)
+    for row in t.rows:
+        for cell in row.cells:
+            for par in cell.paragraphs:
+                par.paragraph_format.space_after = Pt(0)
+                for run in par.runs:
+                    run.font.size = Pt(8)
+    for cell in t.rows[0].cells:
+        for par in cell.paragraphs:
+            for run in par.runs:
+                run.font.bold = True
+doc.save(str(docx_path))
+print(f"wrote {docx_path}")
+

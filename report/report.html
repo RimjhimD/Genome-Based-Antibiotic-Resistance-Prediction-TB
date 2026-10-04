@@ -12,6 +12,7 @@
   table { border-collapse: collapse; font-size: 9.5pt; font-family: Arial, sans-serif;
            margin: 6px 0 4px; width: 100%; }
   th, td { border-bottom: 1px solid #ddd; padding: 3px 6px; text-align: right; }
+  td { white-space: nowrap; }
   th { background: #f0efec; }
   td:first-child, th:first-child { text-align: left; }
   figure { margin: 16px 0; page-break-inside: avoid; }
@@ -40,7 +41,8 @@ leave-one-country-out, with transmission clusters kept on one side of every spli
 against the WHO 2023 mutation catalogue. Aggregate performance transferred well: AUC on South Asian
 isolates fell by at most 0.018 when South Asian data were withheld from
 training. Stratifying by lineage told a different story. Resistant lineage 1 and lineage 3 isolates
-were detected far less often than lineage 2 isolates (for example levofloxacin sensitivity
+were detected less often than lineage 2 isolates, with non-overlapping 95% confidence intervals
+for isoniazid, rifampicin, levofloxacin and moxifloxacin (for example levofloxacin sensitivity
 53.6% on lineage 1 against 93.8%
 on lineage 2), and this deficit was shared by models that had seen South Asian data and by the WHO
 catalogue, which uses no training data at all. The weakness is therefore in what is known about
@@ -49,20 +51,39 @@ failures were also found: ethambutol resistance in a South Asian lineage 2 group
 <i>embC</i> A387V and <i>embB</i> Q445R, mutations absent or nearly absent among resistant training isolates, was
 missed in 36 isolates.
 </div>
+<p class="small"><b>Keywords:</b> antimicrobial resistance · tuberculosis · whole-genome sequencing ·
+machine learning · lineage · model generalisation · South Asia</p>
+
+<div class="abstract"><b>Summary in plain language.</b>
+Tuberculosis (TB) bacteria can become resistant to antibiotics through small changes (mutations)
+in their DNA. Computer models can read these mutations and say which drugs will fail, in days
+instead of the weeks a laboratory test takes. TB bacteria come in families called lineages.
+Most models were built from lineages 2 and 4, common in Europe and East Asia, while South Asia
+(including Bangladesh) has mostly lineages 1 and 3. We asked: do these models still work on South
+Asian TB? We trained four kinds of model only on isolates from outside South Asia
+(5,479–7,595 per drug) and tested them on 2,162 isolates
+from India, Pakistan and Nepal. <b>Overall they worked about
+as well as usual. But for lineage 1 and lineage 3 bacteria they missed many more resistant cases</b>
+— for levofloxacin, about half of resistant lineage 1 cases were missed, against about 6% for
+lineage 2. The official WHO mutation list misses the same cases, so the problem is that the
+resistance mutations of these South Asian lineages are not yet well known. Missing a resistant
+case means a patient may get a drug that will not work, so South Asia needs resistance knowledge
+built from its own lineages.
+</div>
 
 <h2>1. Introduction</h2>
 <p>Tuberculosis remains among the leading infectious causes of death, and drug resistance is the
 main obstacle to treating it. Culture-based drug-susceptibility testing takes weeks. Whole-genome
 sequencing offers a faster route: resistance in <i>M. tuberculosis</i> arises almost entirely from
 chromosomal mutations, so a model that knows which mutations matter can read resistance off the
-genome. The WHO mutation catalogue (2021, updated 2023) and machine learning classifiers built on
-large collections such as CRyPTIC report high accuracy for first-line drugs.</p>
+genome. The WHO mutation catalogue (2021, updated 2023) [2] and machine learning classifiers built
+on large collections such as CRyPTIC [1] report high accuracy for first-line drugs [11].</p>
 <p>That accuracy is measured on strains like those the models were built from. The <i>M.
 tuberculosis</i> complex is divided into lineages with distinct geography: lineages 2 and 4
 dominate East Asia, Europe and the Americas, while lineages 1 and 3 predominate in South Asia,
-including India and Bangladesh. Resistance knowledge is biased toward the globally dominant
-lineages, and China built a national catalogue because the global one under-performed locally. No
-comparable evaluation exists for South Asia.</p>
+including India [8]. Resistance knowledge is biased toward the globally dominant
+lineages [8], and China built a national catalogue because the global one under-performed locally
+[6]. No comparable evaluation exists for South Asia.</p>
 <p><b>Research question.</b> Do genome-based resistance models still work on South Asian strains,
 and if not, which resistance cases do they miss? This report presents the full pilot study: data
 preparation, feature construction, leakage-controlled evaluation under three protocols, a WHO
@@ -70,19 +91,17 @@ catalogue benchmark and an error analysis by lineage.</p>
 
 <h2>2. Related work</h2>
 <p>First-line prediction is mature: published models reach AUC of about 0.99 for rifampicin and
-0.98 for isoniazid, and most report at least 90% sensitivity for isoniazid. The WHO catalogue is
-the clinical reference, implemented in tools such as TB-Profiler and Mykrobe. MIC regression on
-CRyPTIC has been published for 13 drugs (PLOS Computational Biology, 2024). The Farhat group's
-GenTB and their study of geographic heterogeneity (2020) are the closest prior work on
-cross-region transfer. Lineage dependence has been addressed by feature reweighting (FW-RF,
-Bioinformatics 2023) and by China's national catalogue (Lancet Microbe, 2024). Recent benchmarks
-(TB-Bench and a translational benchmark, both 2026) name second-line and newer drugs as the open
+0.98 for isoniazid, and most report at least 90% sensitivity for isoniazid [11]. The WHO catalogue
+[2] is the clinical reference, implemented in tools such as TB-Profiler and Mykrobe. MIC
+regression on CRyPTIC has been published for 13 drugs [7]. The Farhat group's GenTB [3] and their
+study of geographic heterogeneity [4] are the closest prior work on cross-region transfer.
+Lineage dependence has been addressed by feature reweighting (FW-RF) [5] and by China's national
+catalogue [6]. Recent benchmarks [9, 10] name second-line and newer drugs as the open
 problems. What remains untested is a lineage-resolved evaluation on South Asian isolates with
 transmission-aware splits, and that is the contribution here.</p>
 
 <h2>3. Data</h2>
-<p><b>Source.</b> CRyPTIC consortium, release June 2022 (PLOS Biology 20(8), 2022), public EBI
-FTP. We used the reuse table of 12,287 isolates with binary resistant/susceptible phenotypes
+<p><b>Source.</b> CRyPTIC consortium, release June 2022 [1], public EBI FTP. We used the reuse table of 12,287 isolates with binary resistant/susceptible phenotypes
 from UKMYC microtitre plates, the per-isolate mutation table (<code>MUTATIONS_GPI</code>), sample
 metadata for country, Mykrobe lineage calls and the consortium's precomputed pairwise SNP
 distances.</p>
@@ -150,8 +169,8 @@ turn.</li>
 looks at the holdout. Metrics are sensitivity (share of resistant isolates detected; its complement
 is the very major error rate, the clinically dangerous miss), specificity, AUC and F1.</p>
 <h3>4.5 WHO catalogue benchmark</h3>
-<p>The WHO 2023 catalogue (v2, in the GARC grammar maintained by the Oxford group behind CRyPTIC)
-was applied to the same mutation calls: an isolate is called resistant if it carries any mutation
+<p>The WHO 2023 catalogue [2] (v2, in the GARC grammar maintained by the Oxford group behind
+CRyPTIC) was applied to the same mutation calls: an isolate is called resistant if it carries any mutation
 graded group 1 or 2 for that drug, including codon wildcards, gene-level frameshift and stop rules,
 and indel rules. Applied to all isolates, our implementation gives sensitivity/specificity of
 about 96%/95% for rifampicin and 93%/98% for isoniazid, in line with published CRyPTIC figures.</p>
@@ -321,7 +340,11 @@ isoniazid sensitivity was 83.6% on lineage 1 against
 53.6% against 93.8%;
 moxifloxacin 53.8% against
 95.2%; ethionamide 61.1%
-on lineage 3; and amikacin 65.6% on lineage 3.</p>
+on lineage 3; and amikacin 65.6% on lineage 3. Some of these
+groups are small, so Table 2 gives 95% confidence intervals (Wilson score). For isoniazid, rifampicin, levofloxacin and moxifloxacin
+the interval for the worst lineage does not overlap the lineage 2 interval, so the gap is clear.
+For ethambutol, ethionamide, kanamycin and amikacin the gap points the same way but the intervals overlap, so it is suggestive
+rather than established.</p>
 <p>The deciding comparison is between the three columns. If the deficit came from training on
 foreign strains, the random-split models, which did see South Asian lineage 1 and 3 isolates,
 should recover it. They mostly do not: lineage 1 levofloxacin sensitivity is
@@ -341,6 +364,7 @@ smaller, drug-specific loss on top: moxifloxacin on lineage 1
       <th>Resistant isolates</th>
       <th>Sens. random</th>
       <th>Sens. holdout</th>
+      <th>95% CI (holdout)</th>
       <th>Sens. WHO</th>
       <th>Random − holdout</th>
     </tr>
@@ -348,271 +372,301 @@ smaller, drug-specific loss on top: moxifloxacin on lineage 1
   <tbody>
     <tr>
       <td>INH</td>
-      <td>Lineage 1</td>
+      <td>L1</td>
       <td>73</td>
       <td>87.7%</td>
       <td>83.6%</td>
+      <td>73%–90%</td>
       <td>86.3%</td>
       <td>+4.1 pp</td>
     </tr>
     <tr>
       <td>INH</td>
-      <td>Lineage 2</td>
+      <td>L2</td>
       <td>616</td>
       <td>99.2%</td>
       <td>99.2%</td>
+      <td>98%–100%</td>
       <td>99.0%</td>
       <td>+0.0 pp</td>
     </tr>
     <tr>
       <td>INH</td>
-      <td>Lineage 3</td>
+      <td>L3</td>
       <td>414</td>
       <td>92.8%</td>
       <td>91.1%</td>
+      <td>88%–93%</td>
       <td>91.8%</td>
       <td>+1.7 pp</td>
     </tr>
     <tr>
       <td>INH</td>
-      <td>Lineage 4</td>
+      <td>L4</td>
       <td>154</td>
       <td>94.2%</td>
       <td>94.2%</td>
+      <td>89%–97%</td>
       <td>94.2%</td>
       <td>+0.0 pp</td>
     </tr>
     <tr>
       <td>RIF</td>
-      <td>Lineage 1</td>
+      <td>L1</td>
       <td>58</td>
       <td>84.5%</td>
       <td>87.9%</td>
+      <td>77%–94%</td>
       <td>89.7%</td>
       <td>-3.4 pp</td>
     </tr>
     <tr>
       <td>RIF</td>
-      <td>Lineage 2</td>
+      <td>L2</td>
       <td>629</td>
       <td>99.0%</td>
       <td>99.0%</td>
+      <td>98%–100%</td>
       <td>99.4%</td>
       <td>+0.0 pp</td>
     </tr>
     <tr>
       <td>RIF</td>
-      <td>Lineage 3</td>
+      <td>L3</td>
       <td>372</td>
       <td>92.7%</td>
       <td>90.9%</td>
+      <td>87%–93%</td>
       <td>94.4%</td>
       <td>+1.9 pp</td>
     </tr>
     <tr>
       <td>RIF</td>
-      <td>Lineage 4</td>
+      <td>L4</td>
       <td>135</td>
       <td>97.0%</td>
       <td>97.0%</td>
+      <td>93%–99%</td>
       <td>97.0%</td>
       <td>+0.0 pp</td>
     </tr>
     <tr>
       <td>EMB</td>
-      <td>Lineage 1</td>
+      <td>L1</td>
       <td>23</td>
       <td>73.9%</td>
       <td>78.3%</td>
+      <td>58%–90%</td>
       <td>65.2%</td>
       <td>-4.3 pp</td>
     </tr>
     <tr>
       <td>EMB</td>
-      <td>Lineage 2</td>
+      <td>L2</td>
       <td>401</td>
       <td>99.3%</td>
       <td>90.5%</td>
+      <td>87%–93%</td>
       <td>88.5%</td>
       <td>+8.7 pp</td>
     </tr>
     <tr>
       <td>EMB</td>
-      <td>Lineage 3</td>
+      <td>L3</td>
       <td>113</td>
       <td>85.0%</td>
       <td>82.3%</td>
+      <td>74%–88%</td>
       <td>86.7%</td>
       <td>+2.7 pp</td>
     </tr>
     <tr>
       <td>EMB</td>
-      <td>Lineage 4</td>
+      <td>L4</td>
       <td>66</td>
       <td>92.4%</td>
       <td>92.4%</td>
+      <td>83%–97%</td>
       <td>90.9%</td>
       <td>+0.0 pp</td>
     </tr>
     <tr>
       <td>ETH</td>
-      <td>Lineage 1</td>
+      <td>L1</td>
       <td>43</td>
       <td>86.0%</td>
       <td>88.4%</td>
+      <td>76%–95%</td>
       <td>86.0%</td>
       <td>-2.3 pp</td>
     </tr>
     <tr>
       <td>ETH</td>
-      <td>Lineage 2</td>
+      <td>L2</td>
       <td>202</td>
       <td>89.1%</td>
       <td>77.7%</td>
+      <td>71%–83%</td>
       <td>72.3%</td>
       <td>+11.4 pp</td>
     </tr>
     <tr>
       <td>ETH</td>
-      <td>Lineage 3</td>
+      <td>L3</td>
       <td>36</td>
       <td>52.8%</td>
       <td>61.1%</td>
+      <td>45%–75%</td>
       <td>52.8%</td>
       <td>-8.3 pp</td>
     </tr>
     <tr>
       <td>ETH</td>
-      <td>Lineage 4</td>
+      <td>L4</td>
       <td>48</td>
       <td>79.2%</td>
       <td>77.1%</td>
+      <td>63%–87%</td>
       <td>64.6%</td>
       <td>+2.1 pp</td>
     </tr>
     <tr>
       <td>LEV</td>
-      <td>Lineage 1</td>
+      <td>L1</td>
       <td>28</td>
       <td>60.7%</td>
       <td>53.6%</td>
+      <td>36%–70%</td>
       <td>53.6%</td>
       <td>+7.1 pp</td>
     </tr>
     <tr>
       <td>LEV</td>
-      <td>Lineage 2</td>
+      <td>L2</td>
       <td>371</td>
       <td>94.6%</td>
       <td>93.8%</td>
+      <td>91%–96%</td>
       <td>94.6%</td>
       <td>+0.8 pp</td>
     </tr>
     <tr>
       <td>LEV</td>
-      <td>Lineage 3</td>
+      <td>L3</td>
       <td>171</td>
       <td>80.7%</td>
       <td>77.8%</td>
+      <td>71%–83%</td>
       <td>80.1%</td>
       <td>+2.9 pp</td>
     </tr>
     <tr>
       <td>LEV</td>
-      <td>Lineage 4</td>
+      <td>L4</td>
       <td>73</td>
       <td>83.6%</td>
       <td>84.9%</td>
+      <td>75%–91%</td>
       <td>87.7%</td>
       <td>-1.4 pp</td>
     </tr>
     <tr>
       <td>MXF</td>
-      <td>Lineage 1</td>
+      <td>L1</td>
       <td>13</td>
       <td>69.2%</td>
       <td>53.8%</td>
+      <td>29%–77%</td>
       <td>69.2%</td>
       <td>+15.4 pp</td>
     </tr>
     <tr>
       <td>MXF</td>
-      <td>Lineage 2</td>
+      <td>L2</td>
       <td>352</td>
       <td>96.9%</td>
       <td>95.2%</td>
+      <td>92%–97%</td>
       <td>94.9%</td>
       <td>+1.7 pp</td>
     </tr>
     <tr>
       <td>MXF</td>
-      <td>Lineage 3</td>
+      <td>L3</td>
       <td>70</td>
       <td>81.4%</td>
       <td>78.6%</td>
+      <td>68%–87%</td>
       <td>84.3%</td>
       <td>+2.9 pp</td>
     </tr>
     <tr>
       <td>MXF</td>
-      <td>Lineage 4</td>
+      <td>L4</td>
       <td>63</td>
       <td>90.5%</td>
       <td>90.5%</td>
+      <td>81%–96%</td>
       <td>92.1%</td>
       <td>+0.0 pp</td>
     </tr>
     <tr>
       <td>KAN</td>
-      <td>Lineage 2</td>
+      <td>L2</td>
       <td>80</td>
       <td>88.8%</td>
       <td>91.2%</td>
+      <td>83%–96%</td>
       <td>72.5%</td>
       <td>-2.5 pp</td>
     </tr>
     <tr>
       <td>KAN</td>
-      <td>Lineage 3</td>
+      <td>L3</td>
       <td>36</td>
       <td>58.3%</td>
       <td>75.0%</td>
+      <td>59%–86%</td>
       <td>58.3%</td>
       <td>-16.7 pp</td>
     </tr>
     <tr>
       <td>KAN</td>
-      <td>Lineage 4</td>
+      <td>L4</td>
       <td>20</td>
       <td>80.0%</td>
       <td>85.0%</td>
+      <td>64%–95%</td>
       <td>80.0%</td>
       <td>-5.0 pp</td>
     </tr>
     <tr>
       <td>AMI</td>
-      <td>Lineage 2</td>
+      <td>L2</td>
       <td>66</td>
       <td>77.3%</td>
       <td>86.4%</td>
+      <td>76%–93%</td>
       <td>66.7%</td>
       <td>-9.1 pp</td>
     </tr>
     <tr>
       <td>AMI</td>
-      <td>Lineage 3</td>
+      <td>L3</td>
       <td>32</td>
       <td>59.4%</td>
       <td>65.6%</td>
+      <td>48%–80%</td>
       <td>56.2%</td>
       <td>-6.2 pp</td>
     </tr>
     <tr>
       <td>AMI</td>
-      <td>Lineage 4</td>
+      <td>L4</td>
       <td>16</td>
       <td>81.2%</td>
       <td>81.2%</td>
+      <td>57%–93%</td>
       <td>75.0%</td>
       <td>+0.0 pp</td>
     </tr>
@@ -634,7 +688,7 @@ give unstable estimates.</p>
 <figure class="tbl"><figcaption>Table 3. Leave-one-country-out sensitivity of the best model (blank: fewer than 10 resistant isolates).</figcaption><table class="dataframe">
   <thead>
     <tr style="text-align: right;">
-      <th></th>
+      <th>Held-out country</th>
       <th>INH</th>
       <th>RIF</th>
       <th>EMB</th>
@@ -644,21 +698,10 @@ give unstable estimates.</p>
       <th>KAN</th>
       <th>AMI</th>
     </tr>
-    <tr>
-      <th>Held-out country</th>
-      <th></th>
-      <th></th>
-      <th></th>
-      <th></th>
-      <th></th>
-      <th></th>
-      <th></th>
-      <th></th>
-    </tr>
   </thead>
   <tbody>
     <tr>
-      <th>BRA</th>
+      <td>BRA</td>
       <td>0.86</td>
       <td>0.86</td>
       <td>0.96</td>
@@ -669,7 +712,7 @@ give unstable estimates.</p>
       <td>0.20</td>
     </tr>
     <tr>
-      <th>CHN</th>
+      <td>CHN</td>
       <td>0.83</td>
       <td>0.85</td>
       <td>0.78</td>
@@ -680,7 +723,7 @@ give unstable estimates.</p>
       <td>0.48</td>
     </tr>
     <tr>
-      <th>DEU</th>
+      <td>DEU</td>
       <td>1.00</td>
       <td>0.99</td>
       <td></td>
@@ -691,7 +734,7 @@ give unstable estimates.</p>
       <td></td>
     </tr>
     <tr>
-      <th>IND</th>
+      <td>IND</td>
       <td>0.95</td>
       <td>0.95</td>
       <td>0.88</td>
@@ -702,7 +745,7 @@ give unstable estimates.</p>
       <td>0.59</td>
     </tr>
     <tr>
-      <th>ITA</th>
+      <td>ITA</td>
       <td>0.99</td>
       <td>0.94</td>
       <td>0.95</td>
@@ -713,7 +756,7 @@ give unstable estimates.</p>
       <td>0.92</td>
     </tr>
     <tr>
-      <th>NPL</th>
+      <td>NPL</td>
       <td>1.00</td>
       <td>1.00</td>
       <td></td>
@@ -724,7 +767,7 @@ give unstable estimates.</p>
       <td></td>
     </tr>
     <tr>
-      <th>PAK</th>
+      <td>PAK</td>
       <td>0.91</td>
       <td>0.93</td>
       <td>0.95</td>
@@ -735,7 +778,7 @@ give unstable estimates.</p>
       <td>0.69</td>
     </tr>
     <tr>
-      <th>PER</th>
+      <td>PER</td>
       <td>0.93</td>
       <td>0.94</td>
       <td>0.52</td>
@@ -746,7 +789,7 @@ give unstable estimates.</p>
       <td>0.85</td>
     </tr>
     <tr>
-      <th>SWE</th>
+      <td>SWE</td>
       <td>1.00</td>
       <td>0.99</td>
       <td>0.96</td>
@@ -757,7 +800,7 @@ give unstable estimates.</p>
       <td>0.88</td>
     </tr>
     <tr>
-      <th>VNM</th>
+      <td>VNM</td>
       <td>0.94</td>
       <td>0.89</td>
       <td>0.84</td>
@@ -768,7 +811,7 @@ give unstable estimates.</p>
       <td>0.10</td>
     </tr>
     <tr>
-      <th>ZAF</th>
+      <td>ZAF</td>
       <td>0.87</td>
       <td>0.89</td>
       <td>0.92</td>
@@ -1220,9 +1263,9 @@ problem.</p>
 isolates, which make up half of the South Asian isolates here but only a few percent of the training
 population,
 are detected 11 to 41 percentage points less often than lineage 2 isolates, depending on the
-drug.
+drug; the gap is statistically clear for isoniazid, rifampicin, levofloxacin and moxifloxacin.
 Because the deficit appears with and without South Asian training data and in the WHO catalogue
-alike, more data from the same genes would not fix it. The resistance mechanisms of these lineages
+alike, more training data from the same genes alone is unlikely to fix it. The resistance mechanisms of these lineages
 are less well characterised. That is the same reasoning that led China to build a national
 catalogue, and these results argue for a lineage-aware South Asian equivalent. The relevance to
 Bangladesh follows from lineage rather than from local sampling, since lineages 1 and 3 are also
@@ -1235,8 +1278,8 @@ geography: a model never shown a local resistant clade cannot learn its mutation
 <h2>7. Limitations</h2>
 <ul>
 <li>Lineage 1 resistant counts are small for some drugs (13 for moxifloxacin, 23 for ethambutol),
-so those per-lineage estimates carry wide uncertainty; confidence intervals were not computed in
-this pilot.</li>
+so those per-lineage estimates carry wide 95% intervals (Table 2), and for ethambutol, ethionamide, kanamycin and amikacin the
+lineage gap is not statistically established.</li>
 <li>South Asian isolates come mainly from one Mumbai referral centre and from referral
 laboratories, and are enriched for drug resistance; they are not a population sample.</li>
 <li>Features are restricted to 23 known resistance genes. Resistance outside them cannot be
@@ -1255,15 +1298,19 @@ phenotype.</li>
 <p>Genome-based resistance prediction in <i>M. tuberculosis</i> transfers to South Asian isolates
 on aggregate, but systematically under-detects resistance in lineages 1 and 3, the families that
 dominate the region, and this weakness is shared by the WHO catalogue. Next steps for the thesis
-semester: bootstrap confidence intervals for every lineage estimate; genome-wide features to look
+semester: larger lineage 1 and 3 samples to settle the drugs where the gap is not yet
+statistically clear; genome-wide features to look
 for determinants outside the candidate genes in missed lineage 1 and 3 isolates; lineage-aware
 reweighting (as in FW-RF); threshold recalibration per region; and, if a paired Bangladeshi genome
 and phenotype set becomes available through collaboration, direct validation.</p>
 
 <h2>Reproducibility</h2>
 <p class="small">All code is in the repository. <code>bash scripts/fetch_data.sh --mutations</code>
-downloads the CRyPTIC tables; scripts <code>01_prepare.py</code> to <code>07_report.py</code> run
-in order on a CPU (under 15 minutes of training on a 15 GB laptop). Seeds are fixed. Data:
+downloads the data; <code>pip install -r requirements.txt</code> installs the exact library
+versions; scripts <code>01_prepare.py</code> to <code>07_report.py</code> run in order on a CPU
+(under 15 minutes of training on a 15 GB laptop), and <code>check_results.py</code> runs 31
+checks on the outputs (counts, train/test leakage, WHO accuracy, report tables). Seeds are fixed,
+and a run from a fresh clone reproduced every result. Data:
 CRyPTIC release June 2022, <code>ftp.ebi.ac.uk/pub/databases/cryptic/release_june2022/</code>;
 WHO catalogue v2 (GARC), <code>github.com/oxfordmmm/tuberculosis_amr_catalogues</code>.</p>
 

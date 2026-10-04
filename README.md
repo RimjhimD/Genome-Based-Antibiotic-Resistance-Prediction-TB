@@ -53,7 +53,7 @@ Everything runs on CPU. No raw sequencing reads are processed.
 - [x] Step 4 — per-drug models (LR, RF, XGBoost, MLP) — `scripts/04_evaluate.py`
 - [x] Step 5 — evaluation across the three protocols + WHO catalogue — `scripts/04_evaluate.py`, `scripts/who_catalogue.py`
 - [x] Step 6 — error analysis on South Asian isolates, confusion matrices, lineage-as-feature ablation — `scripts/05_analysis.py`, `scripts/06_lineage_check.py`, `scripts/06b_lineage_feature.py`
-- [x] Step 7 — write-up — [report/report.pdf](report/report.pdf) (also `.docx`, `.html`), built by `scripts/07_report.py`
+- [x] Step 7 — write-up — [report/report.pdf](report/report.pdf) (also `.docx` for Word / Google Docs, and `.html`), built by `scripts/07_report.py`
 
 ## Main finding
 
@@ -84,6 +84,7 @@ Day-by-day record: [research-log/](research-log/)
 │   ├── fetch_data.sh               re-downloads every dataset used
 │   ├── 01_prepare.py … 07_report.py  the pipeline, run in order
 │   ├── common.py                   shared model settings
+│   ├── check_results.py            sanity checks: counts, leakage, WHO accuracy, report vs metrics
 │   └── who_catalogue.py            applies the WHO 2023 catalogue to mutation calls
 ├── results/                        metrics, tables (CSV), figures (PNG), logs
 ├── report/                         the written report: PDF, DOCX, HTML
@@ -96,12 +97,17 @@ Day-by-day record: [research-log/](research-log/)
 git clone https://github.com/RimjhimD/Genome-Based-Antibiotic-Resistance-Prediction-TB.git
 cd Genome-Based-Antibiotic-Resistance-Prediction-TB
 bash scripts/fetch_data.sh --mutations
-python3 -m venv .venv && .venv/bin/pip install pandas numpy scipy scikit-learn xgboost matplotlib pyarrow
+python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
 for s in 01_prepare 02_features 03_clusters 04_evaluate 05_analysis 06_lineage_check 06b_lineage_feature 07_report; do
   .venv/bin/python scripts/$s.py
 done
 google-chrome --headless --no-pdf-header-footer --print-to-pdf=report/report.pdf report/report.html
+.venv/bin/python scripts/check_results.py   # 31 checks on the outputs; exits non-zero on failure
 ```
+
+Tested end to end from a fresh clone in a new environment (Python 3.12, CPU only, 15 GB RAM).
+Seeds are fixed: a rerun from a fresh clone reproduced every metric and table in `results/` exactly
+(random-forest probabilities differ only at the 16th decimal, from parallel summation).
 
 
 ## Key numbers

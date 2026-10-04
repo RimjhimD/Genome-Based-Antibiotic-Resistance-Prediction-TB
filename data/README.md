@@ -1,6 +1,6 @@
 # data/
 
-All data in this project is public. Nothing was collected by us, and no patient data is involved:
+All data in this project is public. No new data was collected, and no patient data is involved:
 every row is a bacterial isolate, identified only by a laboratory code.
 
 ## Source
@@ -56,7 +56,7 @@ Upstream folder for every file except the first:
 | `cryptic/GPI_SNP_DISTANCES_LABELS.npy` | 3.5 MB | belongs with the file above | row/column names of the distance matrix |
 | `who/who_2023_v2.csv` | 1.3 MB | its source repository has no licence, so it is linked rather than copied | WHO 2023 catalogue, GARC format |
 
-### `processed/` — built by our scripts (committed)
+### `processed/` — built by the project scripts (committed)
 
 These are the exact tables the models were trained and tested on, so results can be checked
 without downloading the large files above.
@@ -64,7 +64,7 @@ without downloading the large files above.
 | File | Built by | Contents |
 |---|---|---|
 | `isolates.csv` | `scripts/01_prepare.py` | 12,287 isolates: country, South Asia flag, lineage, and a 0/1 label for each of the 8 drugs studied |
-| `mutations_long.parquet` | `scripts/02_features.py` | 149,422 quality-filtered mutation calls in the 23 resistance genes — our filtered extract of `MUTATIONS_GPI.csv.gz` |
+| `mutations_long.parquet` | `scripts/02_features.py` | 149,422 quality-filtered mutation calls in the 23 resistance genes — a filtered extract of `MUTATIONS_GPI.csv.gz` |
 | `features_X.npz` | `scripts/02_features.py` | the 12,287 × 1,021 binary mutation matrix (sparse) |
 | `features_rows.csv`, `features_cols.csv` | `scripts/02_features.py` | isolate IDs and mutation names for the matrix |
 | `clusters.csv` | `scripts/03_clusters.py` | transmission cluster of every isolate (≤12 SNPs, same lineage) |

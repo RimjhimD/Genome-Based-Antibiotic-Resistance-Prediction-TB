@@ -90,7 +90,7 @@ Day-by-day record: [research-log/](research-log/)
 │   └── who_catalogue.py            applies the WHO 2023 catalogue to mutation calls
 ├── results/                        metrics, tables (CSV), figures (PNG), logs
 ├── report/                         the written report: PDF, DOCX, HTML
-└── data/                           downloaded data (not committed) — see data/README.md
+└── data/                           CRyPTIC tables + processed tables; sources in data/README.md
 ```
 
 ## Reproduce
@@ -126,7 +126,18 @@ Bedaquiline   109 R            -> dropped, too few resistant cases
 
 ## Data source
 
-The CRyPTIC Consortium. *A data compendium associating the genomes of 12,289
-Mycobacterium tuberculosis isolates with quantitative resistance phenotypes to 13
-antibiotics.* PLOS Biology 20(8), 2022. doi:10.1371/journal.pbio.3001721. Data:
-<https://ftp.ebi.ac.uk/pub/databases/cryptic/release_june2022/>
+All data are public; nothing was collected for this project and no patient information is involved.
+
+- **Dataset:** CRyPTIC consortium, data release June 2022 — 12,287 *M. tuberculosis* isolates with
+  genome mutation calls and laboratory resistance results for 13 antibiotics.
+  Downloaded from the EMBL-EBI public FTP server:
+  <https://ftp.ebi.ac.uk/pub/databases/cryptic/release_june2022/>
+- **Cite as:** The CRyPTIC Consortium. *A data compendium associating the genomes of 12,289
+  Mycobacterium tuberculosis isolates with quantitative resistance phenotypes to 13 antibiotics.*
+  PLOS Biology 20(8): e3001721, 2022. <https://doi.org/10.1371/journal.pbio.3001721>
+- **Benchmark:** WHO mutation catalogue, 2nd edition (2023), machine-readable version from
+  <https://github.com/oxfordmmm/tuberculosis_amr_catalogues>
+- **In this repository:** the raw CRyPTIC tables under 100 MB and every processed table the models
+  used are in [`data/`](data/). [`data/README.md`](data/README.md) lists each file, its exact
+  upstream path, download date and terms of use. The two large files (273 MB and 464 MB) exceed
+  GitHub's file limit; `bash scripts/fetch_data.sh --mutations` downloads them.

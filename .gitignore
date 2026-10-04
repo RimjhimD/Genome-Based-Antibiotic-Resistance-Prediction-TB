@@ -1,6 +1,12 @@
-# Downloaded datasets — re-fetch with scripts/fetch_data.sh, never committed.
-data/*
-!data/README.md
+# Data: the small CRyPTIC tables and the processed tables are committed (see data/README.md).
+# Not committed: files over GitHub's 100 MB limit, unused downloads, and the WHO catalogue
+# copy (its source repository carries no licence) - scripts/fetch_data.sh downloads them.
+data/cryptic/MUTATIONS_GPI.csv.gz
+data/cryptic/GPI_SNP_DISTANCES_VALUES.npy
+data/cryptic/GPI_SNP_DISTANCES_LABELS.npy
+data/cryptic/GENOMES.csv.gz
+data/cryptic/PREDICTIONS.csv.gz
+data/who/
 
 # Local tooling state
 .remember/

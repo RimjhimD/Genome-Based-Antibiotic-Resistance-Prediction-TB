@@ -314,7 +314,16 @@ problems. What remains untested is a lineage-resolved evaluation on South Asian 
 transmission-aware splits, and that is the contribution here.</p>
 
 <h2>3. Data</h2>
-<p><b>Source.</b> CRyPTIC consortium, release June 2022 [1], public EBI FTP. We used the reuse table of {len(iso):,} isolates with binary resistant/susceptible phenotypes
+<p><b>Source and access.</b> All data are public; no data were collected for this study and
+no patient information is involved. The primary dataset is the CRyPTIC consortium data release of
+June 2022 [1], downloaded from the EMBL-EBI public FTP server
+(https://ftp.ebi.ac.uk/pub/databases/cryptic/release_june2022/) on 20 September and 4 October
+2026. CRyPTIC provides these data for reuse on condition that its data paper [1] is cited. The
+WHO 2023 mutation catalogue [2] was taken in machine-readable form from
+https://github.com/oxfordmmm/tuberculosis_amr_catalogues and used only as a benchmark. The
+exact files, their upstream paths and the processed tables are listed in the repository's
+<code>data/README.md</code> (see Resources).</p>
+<p><b>Tables used.</b> We used the reuse table (<code>CRyPTIC_reuse_table_20240917.csv</code>) of {len(iso):,} isolates with binary resistant/susceptible phenotypes
 from UKMYC microtitre plates, the per-isolate mutation table (<code>MUTATIONS_GPI</code>), sample
 metadata for country, Mykrobe lineage calls and the consortium's precomputed pairwise SNP
 distances.</p>
@@ -576,7 +585,8 @@ https://www.biorxiv.org/content/10.64898/2026.07.03.736369v1</li>
 <ul>
 <li><b>Code repository</b> (all scripts, results, figures and this report):
 <a href="https://github.com/RimjhimD/Genome-Based-Antibiotic-Resistance-Prediction-TB">https://github.com/RimjhimD/Genome-Based-Antibiotic-Resistance-Prediction-TB</a></li>
-<li><b>Dataset:</b> CRyPTIC consortium, release June 2022 —
+<li><b>Dataset:</b> CRyPTIC consortium, data release June 2022 (cite [1]); the files used and
+their upstream paths are listed in <code>data/README.md</code> in the code repository —
 <a href="https://ftp.ebi.ac.uk/pub/databases/cryptic/release_june2022/">https://ftp.ebi.ac.uk/pub/databases/cryptic/release_june2022/</a></li>
 <li><b>WHO mutation catalogue</b> (2023, v2, GARC format) —
 <a href="https://github.com/oxfordmmm/tuberculosis_amr_catalogues">https://github.com/oxfordmmm/tuberculosis_amr_catalogues</a></li>

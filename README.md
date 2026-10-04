@@ -99,11 +99,10 @@ Day-by-day record: [research-log/](research-log/)
 git clone https://github.com/RimjhimD/Genome-Based-Antibiotic-Resistance-Prediction-TB.git
 cd Genome-Based-Antibiotic-Resistance-Prediction-TB
 bash scripts/fetch_data.sh --mutations
-python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
+python3 -m venv .venv && .venv/bin/pip install -r requirements.txt   # also needs LibreOffice and Google Chrome
 for s in 01_prepare 02_features 03_clusters 04_evaluate 05_analysis 06_lineage_check 06b_lineage_feature 07_report; do
   .venv/bin/python scripts/$s.py
 done
-google-chrome --headless --no-pdf-header-footer --print-to-pdf=report/report.pdf report/report.html
 .venv/bin/python scripts/check_results.py   # 31 checks on the outputs; exits non-zero on failure
 ```
 

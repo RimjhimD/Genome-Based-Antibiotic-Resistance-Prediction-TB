@@ -3,11 +3,14 @@
 Tables are read from results/*.csv so the numbers in the report are the
 numbers the pipeline produced. Figures are embedded so the file stands alone.
 
-Output report/report.html, report/report.docx (via pandoc, for Word / Google Docs).
-The PDF is printed from the HTML with Chrome - see README.
+Output report/report.pdf and report/report.docx, each starting with the university
+cover page (scripts/make_cover.py), plus report/report.html (the body only).
+Needs LibreOffice (cover) and Google Chrome (PDF) on the PATH.
 """
 import base64
 import re
+import subprocess
+import sys
 from pathlib import Path
 
 import pandas as pd
@@ -17,7 +20,10 @@ from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_BREAK
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
-from docx.shared import Pt
+from docx.enum.section import WD_SECTION
+from docx.shared import Inches, Pt
+from docxcompose.composer import Composer
+from pypdf import PdfWriter
 
 ROOT = Path(__file__).resolve().parents[1]
 RES, PROC, OUT = ROOT / "results", ROOT / "data" / "processed", ROOT / "report"
@@ -148,6 +154,7 @@ html = f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <title>Geographic Transportability of Genome-Based Antibiotic Resistance Prediction in M. tuberculosis</title>
 <style>
+  @page {{ size: A4; margin: 18mm 16mm; }}
   body {{ font-family: "Times New Roman", Georgia, serif; font-size: 12pt; line-height: 1.5;
          max-width: 820px; margin: 40px auto; padding: 0 24px; color: #111; }}
   h1 {{ font-size: 19pt; line-height: 1.25; margin-bottom: 6px; }}
@@ -180,18 +187,8 @@ html = f"""<!doctype html>
   .cover .date {{ margin-top: 70px; font-size: 12pt; }}
 </style></head><body>
 
-<div class="cover">
-<p class="kind">Research Report</p>
 <h1>Geographic Transportability of Genome-Based Antibiotic Resistance Prediction in
 <i>Mycobacterium tuberculosis</i>: A South Asian Evaluation</h1>
-<p class="sub">Research Track</p>
-<p class="label">Submitted to</p>
-<p class="who"><b>Imtiaz Riad</b><br>Co-Founder<br>Authentic Four Technology</p>
-<p class="label">Submitted by</p>
-<p class="who"><b>Rimjhim Dey</b></p>
-<p class="date">4 October 2026</p>
-</div>
-<!--PAGEBREAK-->
 
 <div class="abstract"><b>Abstract.</b>
 Machine learning models predict antibiotic resistance in <i>M. tuberculosis</i> from the genome in
@@ -556,22 +553,6 @@ pypandoc.convert_text(src, "docx", format="html", outputfile=str(docx_path))
 
 doc = Document(str(docx_path))
 pars = doc.paragraphs
-first_break = next(i for i, p_ in enumerate(pars) if p_.text.strip() == "PAGEBREAK")
-for i, par in enumerate(pars[:first_break]):  # cover page
-    par.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    par.paragraph_format.space_after = Pt(6)
-    text = par.text.strip()
-    if text == "Research Report":
-        par.paragraph_format.space_before = Pt(80)
-    if text in ("Submitted to", "Submitted by"):
-        par.paragraph_format.space_before = Pt(36)
-        for run in par.runs:
-            run.font.size = Pt(10)
-            run.font.all_caps = True
-    if text == "Research Track":
-        par.paragraph_format.space_after = Pt(60)
-    if text == "4 October 2026":
-        par.paragraph_format.space_before = Pt(70)
 for par in pars:
     if par.text.strip() == "PAGEBREAK":
         for run in par.runs:
@@ -611,5 +592,32 @@ for t in doc.tables:
             for run in par.runs:
                 run.font.bold = True
 doc.save(str(docx_path))
-print(f"wrote {docx_path}")
+
+# ---- Cover page + assembly ------------------------------------------------------
+ASSETS = OUT / "assets"
+subprocess.run([sys.executable, str(ROOT / "scripts" / "make_cover.py")], check=True)
+for fmt in ("pdf", 'docx:MS Word 2007 XML'):
+    subprocess.run(["soffice", "--headless", "--convert-to", fmt, "--outdir", str(ASSETS),
+                    str(ASSETS / "cover.fodt")], check=True, capture_output=True)
+body_pdf = ASSETS / "body.pdf"
+subprocess.run(["google-chrome", "--headless=new", "--disable-gpu", "--no-pdf-header-footer",
+                f"--print-to-pdf={body_pdf}", (OUT / "report.html").as_uri()],
+               check=True, capture_output=True)
+
+pdf = PdfWriter()
+for part in (ASSETS / "cover.pdf", body_pdf):
+    pdf.append(str(part))
+pdf.write(str(OUT / "report.pdf"))
+pdf.close()
+
+# Word: cover keeps its own narrow margins in its own section; the body follows in a
+# new section with 1-inch margins.
+cover = Document(str(ASSETS / "cover.docx"))
+body_section = cover.add_section(WD_SECTION.NEW_PAGE)
+for side in ("top_margin", "bottom_margin", "left_margin", "right_margin"):
+    setattr(body_section, side, Inches(1))
+composer = Composer(cover)
+composer.append(Document(str(docx_path)))
+composer.save(str(docx_path))
+print(f"wrote {OUT / 'report.pdf'} and {docx_path} with cover page")
 
